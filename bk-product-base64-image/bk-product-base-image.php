@@ -9,6 +9,10 @@
  * Text Domain: bkwoo
  */
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 add_action('rest_api_init', 'aec_woocommerce_api_customize');
 
 function aec_woocommerce_api_customize()
@@ -20,30 +24,41 @@ function aec_woocommerce_api_customize()
 
 function custom_product_api_image_upload( $product, $request){
 
-    if ( isset( $request['image_base64_url'] ) && ! empty( $request['image_base64_url'] ) ) {
+    if (isset($request['images_base64_urls']) && is_array($request['images_base64_urls'])) {
+        foreach ($request['images_base64_urls']  as $key => $image_base64_url) {
+            if (!empty($image_base64_url)) {
+                $image_data = base64_decode($image_base64_url);
+                $upload_dir = wp_upload_dir();
+                $image_filename = wp_unique_filename($upload_dir['path'], 'product_image_' . uniqid() . '.png');
+                $image_path = $upload_dir['path'] . '/' . $image_filename;
 
-        $image_data = base64_decode( $request['image_base64_url'] );
-        $product_name= preg_replace('/[^a-z0-9-]+/', '-', strtolower(str_replace(' ', '-', $request['name'])));
-        $upload_dir = wp_upload_dir();
-        $image_filename = wp_unique_filename( $upload_dir['path'], $product_name.'.png' );
-        $image_path = $upload_dir['path'] . '/' . $image_filename;
+                if (file_put_contents($image_path, $image_data) !== false) {
+                    $attachment = array(
+                        'post_title'     => sanitize_file_name($image_filename),
+                        'post_mime_type' => 'image/png',
+                        'post_status'    => 'inherit'
+                    );
 
-        file_put_contents( $image_path, $image_data );
-        $attachment = array(
-            'post_title'     => sanitize_file_name( $image_filename ),
-            'post_mime_type' => 'image/png',
-            'post_status'    => 'inherit'
-        );
-
-        $attachment_id = wp_insert_attachment( $attachment, $image_path, $product->get_id() );
-        if ( ! is_wp_error( $attachment_id ) ) {
-
-            require_once( ABSPATH . 'wp-admin/includes/image.php' );
-            $attachment_metadata = wp_generate_attachment_metadata( $attachment_id, $image_path );
-            wp_update_attachment_metadata( $attachment_id, $attachment_metadata );
-
-            $product->set_image_id( $attachment_id );
-            $product->save();
+                    $attachment_id = wp_insert_attachment($attachment, $image_path, $product->get_id());
+                    if (!is_wp_error($attachment_id)) {
+                        require_once(ABSPATH . 'wp-admin/includes/image.php');
+                        $attachment_metadata = wp_generate_attachment_metadata($attachment_id, $image_path);
+                        wp_update_attachment_metadata($attachment_id, $attachment_metadata);
+                        if ($key === 0) {
+                            $product->set_image_id($attachment_id);
+                        } else {
+                            $gallery_image_ids = $product->get_gallery_image_ids();
+                            $gallery_image_ids[] = $attachment_id;
+                            $product->set_gallery_image_ids($gallery_image_ids);
+                        }
+                    } else {
+                        error_log('Error inserting attachment: ' . $attachment_id->get_error_message());
+                    }
+                } else {
+                    error_log('Error writing image file to disk');
+                }
+            }
         }
+        $product->save();
     }
 }

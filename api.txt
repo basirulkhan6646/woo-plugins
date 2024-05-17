@@ -1,0 +1,17 @@
+endpoint: wc/v3/products
+Request packet:
+
+{
+    "name": "Head Cap",
+    "slug": "head-cap",
+    "sku":"hdcap",
+    "type": "simple",
+    "status": "publish",
+     "price": "100",
+    "regular_price": "100",
+    "images_base64_urls":[
+     "iVBORw0KGgoAAAANSUhEUgAAAHcAAAB3CAYAAAA5Od+KAAAAAXNSR0IArs4c6QAAAARnQ",
+     "AJcEhZcwAACxEAAAsRAX9kX5EAADaWSURBVHhe7d1Xj2RZliVm/iQ2BmAL",
+     "Xz7RT+fvS5cvt/PkL7fqNm+3ipUvtbL13ss3Pz7bjGyfaydNn2vkLF9rVa9fqnJdz/"
+     ]
+}
